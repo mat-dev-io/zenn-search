@@ -57,14 +57,6 @@ on:
         description: "How many items to post"
         required: false
         default: "10"
-      include:
-        description: "Include keywords CSV"
-        required: false
-        default: "GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation"
-      exclude:
-        description: "Exclude keywords CSV"
-        required: false
-        default: ""
       dedupe:
         description: "Dedupe mode: local|issue|none"
         required: false
@@ -90,10 +82,27 @@ jobs:
           issue: ${{ github.event.inputs.issue || '2' }}
           pages: ${{ github.event.inputs.pages || '5' }}
           max_items: ${{ github.event.inputs.max_items || '10' }}
-          include: ${{ github.event.inputs.include || 'GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation' }}
-          exclude: ${{ github.event.inputs.exclude || '' }}
           dedupe: ${{ github.event.inputs.dedupe || 'issue' }}
           dry_run: ${{ github.event.inputs.dry_run || 'false' }}
+          profile: .github/zenn-search/profile.json
+```
+
+4. キーワード設定を1か所に集約します。
+
+例: `.github/zenn-search/profile.json`
+
+```json
+{
+  "include_keywords": [
+    "GitHub Copilot",
+    "GitHub Actions",
+    "Agent Skills",
+    "AI",
+    "Claude",
+    "automation"
+  ],
+  "exclude_keywords": []
+}
 ```
 
 ## ローカル実行例
@@ -106,7 +115,7 @@ jobs:
 tools/zenn-search/scripts/zenn-search.sh \
   --pages 1 \
   --max-items 3 \
-  --include "GitHub Copilot,Claude" \
+  --profile .github/zenn-search/profile.json \
   --dedupe none \
   --dry-run
 ```
@@ -119,6 +128,7 @@ tools/zenn-search/scripts/zenn-search.sh \
   --issue 2 \
   --pages 1 \
   --max-items 3 \
+  --profile .github/zenn-search/profile.json \
   --dedupe issue
 ```
 
@@ -138,6 +148,7 @@ Workflowのデフォルト:
 - `pages`: `5`
 - `max_items`: `10`
 - `dedupe`: `issue`
+- `profile`: `.github/zenn-search/profile.json`
 
 定期実行も有効になっており、UTC 21:00 に起動します。
 
@@ -174,6 +185,7 @@ jobs:
 - このActionは実行元リポジトリのGitHub Actions環境と権限で動作し、公開元リポジトリのIssueやローカル環境を直接操作しません。
 - GitHub Actions のような揮発環境では `dedupe: issue` を使ってください。
 - ローカルで繰り返し実行する場合は `dedupe: local` を使ってください。
+- 記事抽出キーワードは `--include/--exclude` を散在させず、`profile.json` で1か所管理する運用を推奨します。
 - コメント投稿時のみ `issues: write` 権限が必要です。
 - Zenn側のHTML/JSON構造が変わると取得処理が壊れる可能性があります。
 

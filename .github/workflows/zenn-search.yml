@@ -18,14 +18,6 @@ on:
         description: "How many items to post"
         required: false
         default: "10"
-      include:
-        description: "Include keywords CSV"
-        required: false
-        default: "GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation"
-      exclude:
-        description: "Exclude keywords CSV"
-        required: false
-        default: ""
       dedupe:
         description: "Dedupe mode: local|issue|none"
         required: false
@@ -54,10 +46,9 @@ jobs:
           issue: ${{ github.event.inputs.issue || '2' }}
           pages: ${{ github.event.inputs.pages || '5' }}
           max_items: ${{ github.event.inputs.max_items || '10' }}
-          include: ${{ github.event.inputs.include || 'GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation' }}
-          exclude: ${{ github.event.inputs.exclude || '' }}
           dedupe: ${{ github.event.inputs.dedupe || 'issue' }}
           dry_run: ${{ github.event.inputs.dry_run || 'false' }}
+          profile: .github/zenn-search/profile.json
           output: .local/zenn-search-comment.md
           state_path: .local/zenn-search-state.json
           seen_output: .local/zenn-search-seen-from-issue.txt
