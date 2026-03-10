@@ -1,11 +1,21 @@
 {
   "include_keywords": [
-    "GitHub Copilot",
-    "GitHub Actions",
-    "Agent Skills",
-    "AI",
-    "Claude",
-    "automation"
+     "AI",
+     "自動化",
+     "GitHub Copilot",
+     "GitHub Actions",
+     "検索",
+     "開発効率",
+     "プロンプトエンジニアリング",
+     "機械学習",
+     "データ分析",
+     "技術トレンド",
+     "エージェント",
+     "スクリプト",
+     "Python",
+     "Bash",
+     "クラウド",
+     "DevOps"
   ],
   "exclude_keywords": []
 }

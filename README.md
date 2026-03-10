@@ -105,6 +105,11 @@ jobs:
 }
 ```
 
+補足:
+
+- Action側の `include` / `exclude` は上書き用の任意入力です。
+- 既定では空なので、通常運用では `profile.json` を唯一のキーワード定義として扱えます。
+
 ## ローカル実行例
 
 まずは投稿せずに結果だけ確認します。
@@ -178,6 +183,7 @@ jobs:
           max_items: "10"
           dedupe: "issue"
           dry_run: "false"
+          profile: .github/zenn-search/profile.json
 ```
 
 ## 注意点
