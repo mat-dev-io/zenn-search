@@ -9,7 +9,7 @@ on:
       issue:
         description: "Post results to this issue number"
         required: true
-        default: "1"
+        default: "2"
       pages:
         description: "How many pages to scan"
         required: false
@@ -51,7 +51,7 @@ jobs:
         uses: ./
         with:
           repo: ${{ github.repository }}
-          issue: ${{ github.event.inputs.issue || '1' }}
+          issue: ${{ github.event.inputs.issue || '2' }}
           pages: ${{ github.event.inputs.pages || '5' }}
           max_items: ${{ github.event.inputs.max_items || '10' }}
           include: ${{ github.event.inputs.include || 'GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation' }}
