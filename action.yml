@@ -1,0 +1,110 @@
+name: "Zenn Search"
+description: "Fetch recent Zenn articles, rank/filter them, and optionally post to a GitHub Issue"
+author: "your-name"
+
+inputs:
+  repo:
+    description: "Target repository (owner/name) for issue comment"
+    required: false
+    default: ""
+  issue:
+    description: "Target issue number for issue comment"
+    required: false
+    default: ""
+  url:
+    description: "Zenn list page URL"
+    required: false
+    default: "https://zenn.dev/articles"
+  pages:
+    description: "Number of pages to scan"
+    required: false
+    default: "5"
+  max_items:
+    description: "Max number of items in output"
+    required: false
+    default: "10"
+  include:
+    description: "Comma-separated include keywords"
+    required: false
+    default: "GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation"
+  exclude:
+    description: "Comma-separated exclude keywords"
+    required: false
+    default: ""
+  dedupe:
+    description: "Dedupe mode: local|issue|none"
+    required: false
+    default: "issue"
+  dry_run:
+    description: "If true, prints only and does not post issue comment"
+    required: false
+    default: "false"
+  output:
+    description: "Output markdown file path"
+    required: false
+    default: ".local/zenn-search-comment.md"
+  state_path:
+    description: "Local dedupe state path"
+    required: false
+    default: ".local/zenn-search-state.json"
+  seen_output:
+    description: "Issue-based dedupe extracted URLs file path"
+    required: false
+    default: ".local/zenn-search-seen-from-issue.txt"
+  profile:
+    description: "Optional profile json path"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
+
+    - name: Run zenn-search
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+
+        chmod +x scripts/zenn-search.sh
+
+        args=(
+          --url "${{ inputs.url }}"
+          --pages "${{ inputs.pages }}"
+          --max-items "${{ inputs.max_items }}"
+          --dedupe "${{ inputs.dedupe }}"
+          --output "${{ inputs.output }}"
+          --state-path "${{ inputs.state_path }}"
+          --seen-output "${{ inputs.seen_output }}"
+        )
+
+        if [[ -n "${{ inputs.include }}" ]]; then
+          args+=(--include "${{ inputs.include }}")
+        fi
+
+        if [[ -n "${{ inputs.exclude }}" ]]; then
+          args+=(--exclude "${{ inputs.exclude }}")
+        fi
+
+        if [[ -n "${{ inputs.profile }}" ]]; then
+          args+=(--profile "${{ inputs.profile }}")
+        fi
+
+        if [[ -n "${{ inputs.repo }}" && -n "${{ inputs.issue }}" ]]; then
+          args+=(--repo "${{ inputs.repo }}" --issue "${{ inputs.issue }}")
+        fi
+
+        if [[ "${{ inputs.dry_run }}" == "true" ]]; then
+          args+=(--dry-run)
+        fi
+
+        scripts/zenn-search.sh "${args[@]}"
+
+branding:
+  icon: "search"
+  color: "blue"
