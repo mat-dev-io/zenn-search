@@ -1,9 +1,9 @@
 name: Zenn Search
 
 on:
-  # UTC 21:00 = JST 06:00
-  schedule:
-    - cron: "0 21 * * *"
+  # 定期実行（schedule/cron）する場合は以下のコメントアウトを外して設定してください
+  # schedule:
+  #   - cron: "0 21 * * *"
   workflow_dispatch:
     inputs:
       issue:

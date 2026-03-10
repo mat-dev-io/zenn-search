@@ -38,6 +38,19 @@ chmod +x scripts/zenn-search.sh
 3. あなたのリポジトリ側に Workflow を追加します。
 
 例: `.github/workflows/zenn-search.yml`
+[定期実行の無効化/有効化について]
+
+GitHub Actions の定期実行（schedule/cron）を無効化したい場合は、Workflowファイル内の該当部分をコメントアウトしてください。
+
+例：
+
+```yaml
+# 定期実行（schedule/cron）する場合は以下のコメントアウトを外して設定してください
+  # schedule:
+  #   - cron: "0 21 * * *"
+```
+
+定期実行を有効化したい場合は、コメントアウトを解除してください。
 
 ```yaml
 name: Zenn Search
