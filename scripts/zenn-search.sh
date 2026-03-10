@@ -10,6 +10,10 @@ include_keywords=""
 exclude_keywords=""
 dedupe="local"
 dry_run=0
+comment_path=".local/zenn-search-comment.md"
+state_path=".local/zenn-search-state.json"
+seen_output_path=".local/zenn-search-seen-from-issue.txt"
+profile_path=""
 
 usage() {
   cat <<'EOF'
@@ -17,6 +21,8 @@ Usage:
   scripts/zenn-search.sh [--url URL] [--pages N] [--max-items N]
                          [--include CSV] [--exclude CSV]
                          [--dedupe local|issue|none]
+                         [--output PATH] [--state-path PATH] [--seen-output PATH]
+                         [--profile PATH]
                          [--repo owner/name --issue N]
                          [--dry-run]
 
@@ -25,12 +31,12 @@ Usage:
   Next.js の埋め込みJSON（__NEXT_DATA__）から新着記事メタデータを抽出します。
 
   その後、include/exclude キーワードでスコアリングし、
-  上位 N 件を data/zenn/search/comment.md に出力。
+  上位 N 件を出力（デフォルト: .local/zenn-search-comment.md）。
   --repo と --issue を指定した場合は、Issue にコメント投稿します。
 
 重複抑止:
-  `--dedupe local`（デフォルト）: .local/zenn-search-state.json に既出URLを保存
-  `--dedupe issue`              : 指定Issueの過去コメント本文から既出URLを抽出
+  `--dedupe local`（デフォルト）: --state-path に既出URLを保存
+  `--dedupe issue`              : 指定Issueの過去コメント本文から既出URLを抽出し --seen-output に保存
   `--dedupe none`               : 重複抑止しない
 
 例:
@@ -66,6 +72,14 @@ while [[ $# -gt 0 ]]; do
       exclude_keywords="$2"; shift 2 ;;
     --dedupe)
       dedupe="$2"; shift 2 ;;
+    --output)
+      comment_path="$2"; shift 2 ;;
+    --state-path)
+      state_path="$2"; shift 2 ;;
+    --seen-output)
+      seen_output_path="$2"; shift 2 ;;
+    --profile)
+      profile_path="$2"; shift 2 ;;
     --dry-run)
       dry_run=1; shift 1 ;;
     -h|--help)
@@ -83,9 +97,10 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-mkdir -p .local data/zenn/search
-state_path=".local/zenn-search-state.json"
-comment_path="data/zenn/search/comment.md"
+mkdir -p .local
+mkdir -p "$(dirname "$comment_path")"
+mkdir -p "$(dirname "$state_path")"
+mkdir -p "$(dirname "$seen_output_path")"
 
 dedupe_mode="$dedupe"
 seen_path=""
@@ -116,7 +131,7 @@ if [[ "$dedupe_mode" == "issue" ]]; then
     exit 2
   fi
 
-  seen_path="data/zenn/search/seen-from-issue.txt"
+  seen_path="$seen_output_path"
 
   gh api --paginate "repos/${repo}/issues/${issue_number}/comments" --jq '.[].body' \
     | python3 /dev/fd/3 "$seen_path" 3<<'PY'
@@ -143,7 +158,7 @@ with open(out_path, 'w', encoding='utf-8') as f:
 PY
 fi
 
-python3 - "$list_url" "$pages" "$state_path" "$comment_path" "$max_items" "$include_keywords" "$exclude_keywords" "$dedupe_mode" "$seen_path" <<'PY'
+python3 - "$list_url" "$pages" "$state_path" "$comment_path" "$max_items" "$include_keywords" "$exclude_keywords" "$dedupe_mode" "$seen_path" "$profile_path" <<'PY'
 import json
 import math
 import re
@@ -161,6 +176,7 @@ include_csv = sys.argv[6].strip()
 exclude_csv = sys.argv[7].strip()
 dedupe_mode = sys.argv[8].strip()
 seen_path = sys.argv[9].strip()
+profile_path = sys.argv[10].strip()
 
 
 def fetch_text(url: str, timeout: int = 20) -> str:
@@ -194,6 +210,16 @@ def parse_iso_datetime(s: str) -> datetime | None:
 
 def normalize_keywords(csv: str) -> list[str]:
     return [k.strip().lower() for k in (csv or '').split(',') if k.strip()]
+
+
+def merge_keywords(base: list[str], extra: list[str]) -> list[str]:
+  out = list(base)
+  seen_kw = set(base)
+  for k in extra:
+    if k and k not in seen_kw:
+      out.append(k)
+      seen_kw.add(k)
+  return out
 
 
 def load_state(path: str) -> dict:
@@ -233,8 +259,26 @@ def load_seen_from_file(path: str) -> set[str]:
     return set()
 
 
+def load_profile(path_arg: str) -> dict:
+  path = path_arg or '.local/zenn-profile.json'
+  try:
+    with open(path, 'r', encoding='utf-8') as f:
+      data = json.load(f)
+      return data if isinstance(data, dict) else {}
+  except FileNotFoundError:
+    return {}
+  except Exception:
+    return {}
+
+
 include = normalize_keywords(include_csv)
 exclude = normalize_keywords(exclude_csv)
+
+profile = load_profile(profile_path)
+profile_include = [str(x).strip().lower() for x in profile.get('include_keywords', []) if str(x).strip()]
+profile_exclude = [str(x).strip().lower() for x in profile.get('exclude_keywords', []) if str(x).strip()]
+include = merge_keywords(include, profile_include)
+exclude = merge_keywords(exclude, profile_exclude)
 
 state = {}
 seen: set[str]
