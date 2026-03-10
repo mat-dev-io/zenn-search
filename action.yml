@@ -71,6 +71,8 @@ runs:
       run: |
         set -euo pipefail
 
+        cd "$GITHUB_ACTION_PATH"
+
         chmod +x scripts/zenn-search.sh
 
         args=(
