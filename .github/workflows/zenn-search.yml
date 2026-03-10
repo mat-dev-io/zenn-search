@@ -1,0 +1,63 @@
+name: Zenn Search
+
+on:
+  # UTC 21:00 = JST 06:00
+  schedule:
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Post results to this issue number"
+        required: true
+        default: "1"
+      pages:
+        description: "How many pages to scan"
+        required: false
+        default: "5"
+      max_items:
+        description: "How many items to post"
+        required: false
+        default: "10"
+      include:
+        description: "Include keywords CSV"
+        required: false
+        default: "GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation"
+      exclude:
+        description: "Exclude keywords CSV"
+        required: false
+        default: ""
+      dedupe:
+        description: "Dedupe mode: local|issue|none"
+        required: false
+        default: "issue"
+      dry_run:
+        description: "Do not post comment (print only)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run zenn-search action
+        uses: ./
+        with:
+          repo: ${{ github.repository }}
+          issue: ${{ github.event.inputs.issue || '1' }}
+          pages: ${{ github.event.inputs.pages || '5' }}
+          max_items: ${{ github.event.inputs.max_items || '10' }}
+          include: ${{ github.event.inputs.include || 'GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation' }}
+          exclude: ${{ github.event.inputs.exclude || '' }}
+          dedupe: ${{ github.event.inputs.dedupe || 'issue' }}
+          dry_run: ${{ github.event.inputs.dry_run || 'false' }}
+          output: .local/zenn-search-comment.md
+          state_path: .local/zenn-search-state.json
+          seen_output: .local/zenn-search-seen-from-issue.txt
