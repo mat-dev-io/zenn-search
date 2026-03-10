@@ -2,6 +2,8 @@
 
 Zennの最新記事を収集してランキング・フィルタリングし、必要に応じてGitHub Issueへ結果を投稿するためのCLI + GitHub Actionsツールです。
 
+このリポジトリの主な使い方は、ユーザー自身のリポジトリ配下に `zenn-search` を配置し、そのリポジトリのIssueへ履歴を蓄積する運用です。
+
 ## 含まれるもの
 
 - `scripts/zenn-search.sh`: 記事収集・スコアリング・Issue投稿を行うCLI
@@ -19,11 +21,12 @@ GitHub Actions の `ubuntu-latest` では、通常これらは利用可能です
 
 ## セットアップ
 
-1. リポジトリをクローンします。
+1. あなたの運用リポジトリ直下に `zenn-search` を配置します。
 
 ```bash
-git clone https://github.com/mat-dev-io/zenn-search.git
-cd zenn-search
+cd /path/to/your-repo
+git clone https://github.com/mat-dev-io/zenn-search.git tools/zenn-search
+cd tools/zenn-search
 ```
 
 2. スクリプトに実行権限を付与します。
@@ -32,17 +35,87 @@ cd zenn-search
 chmod +x scripts/zenn-search.sh
 ```
 
-3. 必要なら `.github/workflows/zenn-search.yml` の `issue` デフォルト値やキーワードを自分用に調整します。
+3. あなたのリポジトリ側に Workflow を追加します。
+
+例: `.github/workflows/zenn-search.yml`
+
+```yaml
+name: Zenn Search
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "Post results to this issue number"
+        required: true
+        default: "2"
+      pages:
+        description: "How many pages to scan"
+        required: false
+        default: "5"
+      max_items:
+        description: "How many items to post"
+        required: false
+        default: "10"
+      dedupe:
+        description: "Dedupe mode: local|issue|none"
+        required: false
+        default: "issue"
+      dry_run:
+        description: "Do not post comment (print only)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./tools/zenn-search
+        with:
+          repo: ${{ github.repository }}
+          issue: ${{ github.event.inputs.issue || '2' }}
+          pages: ${{ github.event.inputs.pages || '5' }}
+          max_items: ${{ github.event.inputs.max_items || '10' }}
+          dedupe: ${{ github.event.inputs.dedupe || 'issue' }}
+          dry_run: ${{ github.event.inputs.dry_run || 'false' }}
+          profile: .github/zenn-search/profile.json
+```
+
+4. キーワード設定を1か所に集約します。
+
+例: `.github/zenn-search/profile.json`
+
+```json
+{
+  "include_keywords": [
+    "GitHub Copilot",
+    "GitHub Actions",
+    "Agent Skills",
+    "AI",
+    "Claude",
+    "automation"
+  ],
+  "exclude_keywords": []
+}
+```
 
 ## ローカル実行例
 
 まずは投稿せずに結果だけ確認します。
 
+あなたの運用リポジトリ直下から実行します。
+
 ```bash
-scripts/zenn-search.sh \
+tools/zenn-search/scripts/zenn-search.sh \
   --pages 1 \
   --max-items 3 \
-  --include "GitHub Copilot,Claude" \
+  --profile .github/zenn-search/profile.json \
   --dedupe none \
   --dry-run
 ```
@@ -50,21 +123,22 @@ scripts/zenn-search.sh \
 Issueに投稿する場合の例です。
 
 ```bash
-scripts/zenn-search.sh \
-  --repo mat-dev-io/zenn-search \
+tools/zenn-search/scripts/zenn-search.sh \
+  --repo <your-owner>/<your-repo> \
   --issue 2 \
   --pages 1 \
   --max-items 3 \
+  --profile .github/zenn-search/profile.json \
   --dedupe issue
 ```
 
 ## GitHub Actionsで使う
 
-このリポジトリには、すでに実行用Workflowの `.github/workflows/zenn-search.yml` が含まれています。
+あなたのリポジトリに追加した Workflow から、`./tools/zenn-search` を呼び出します。
 
 使い方:
 
-1. GitHub に push する
+1. あなたのリポジトリに `tools/zenn-search` を含めて push する
 2. Actions タブで `Zenn Search` を開く
 3. `Run workflow` から手動実行する
 
@@ -74,12 +148,21 @@ Workflowのデフォルト:
 - `pages`: `5`
 - `max_items`: `10`
 - `dedupe`: `issue`
+- `profile`: `.github/zenn-search/profile.json`
 
 定期実行も有効になっており、UTC 21:00 に起動します。
 
+## 履歴のたまり方
+
+実行結果は、Workflowで指定したあなた自身のリポジトリのIssueにコメントとして蓄積されます。
+
+- `repo: ${{ github.repository }}` を指定すると、実行元リポジトリのIssueに投稿されます。
+- `issue: "2"` を指定すると、そのIssueに継続して履歴が積み上がります。
+- `dedupe: issue` を使うと、同じIssueの過去コメントを見て既出URLを除外します。
+
 ## 他のリポジトリからActionとして使う
 
-このリポジトリを公開した後は、別リポジトリから `uses:` で呼び出すこともできます。
+必要であれば、このリポジトリを公開した後に別リポジトリから `uses:` で呼び出すこともできます。ただし主運用は、あなたのリポジトリ配下に `tools/zenn-search` として配置する方式です。
 
 ```yaml
 jobs:
@@ -99,8 +182,10 @@ jobs:
 
 ## 注意点
 
+- このActionは実行元リポジトリのGitHub Actions環境と権限で動作し、公開元リポジトリのIssueやローカル環境を直接操作しません。
 - GitHub Actions のような揮発環境では `dedupe: issue` を使ってください。
 - ローカルで繰り返し実行する場合は `dedupe: local` を使ってください。
+- 記事抽出キーワードは `--include/--exclude` を散在させず、`profile.json` で1か所管理する運用を推奨します。
 - コメント投稿時のみ `issues: write` 権限が必要です。
 - Zenn側のHTML/JSON構造が変わると取得処理が壊れる可能性があります。
 
