@@ -1,99 +1,109 @@
 # zenn-search
 
-Zennの最新記事を収集してランキング・フィルタリングし、必要に応じてGitHub Issueへ結果を投稿するためのGitHub Action + CLIラッパーです。
+Zennの最新記事を収集してランキング・フィルタリングし、必要に応じてGitHub Issueへ結果を投稿するためのCLI + GitHub Actionsツールです。
 
-## このテンプレートに含まれるもの
+## 含まれるもの
 
-- `action.yml`: `scripts/zenn-search.sh` を呼び出す Composite Action ラッパー
+- `scripts/zenn-search.sh`: 記事収集・スコアリング・Issue投稿を行うCLI
+- `action.yml`: `scripts/zenn-search.sh` を呼び出す Composite Action
 - `.github/workflows/ci.yml`: シェル品質チェックとスモークチェックのためのCI
-- このREADME（そのままコピーして使えるセットアップ手順付き）
+- `.github/workflows/zenn-search.yml`: 手動実行と定期実行のためのWorkflow
 
 ## 要件
 
-- このリポジトリに `scripts/zenn-search.sh` が存在すること
-- スクリプトが次のオプションをサポートしていること:
-  - `--url --pages --max-items --include --exclude --dedupe`
-  - `--repo --issue --dry-run`
-  - `--output --state-path --seen-output`
-  - 任意: `--profile`
-- GitHub runner 上で利用できる実行ツール:
-  - `bash`
-  - `python3`
-  - `gh`（`ubuntu-latest` では標準で利用可能）
+- `bash`
+- `python3`
+- `gh`
 
-## クイックセットアップ
+GitHub Actions の `ubuntu-latest` では、通常これらは利用可能です。ローカル実行時は `gh auth login` を済ませてください。
 
-1. このテンプレートからファイルをコピーします:
+## セットアップ
+
+1. リポジトリをクローンします。
 
 ```bash
-cp action.yml <your-new-repo>/action.yml
-mkdir -p <your-new-repo>/.github/workflows
-cp .github/workflows/ci.yml <your-new-repo>/.github/workflows/ci.yml
-cp README.md <your-new-repo>/README.md
+git clone https://github.com/mat-dev-io/zenn-search.git
+cd zenn-search
 ```
 
-2. スクリプトを次の場所に配置します:
+2. スクリプトに実行権限を付与します。
 
-```text
-scripts/zenn-search.sh
+```bash
+chmod +x scripts/zenn-search.sh
 ```
 
-3. コミットしてプッシュします。
+3. 必要なら `.github/workflows/zenn-search.yml` の `issue` デフォルト値やキーワードを自分用に調整します。
 
-## このActionを使うワークフロー例
+## ローカル実行例
 
-新しいリポジトリに `.github/workflows/zenn-search.yml` を作成します:
+まずは投稿せずに結果だけ確認します。
+
+```bash
+scripts/zenn-search.sh \
+  --pages 1 \
+  --max-items 3 \
+  --include "GitHub Copilot,Claude" \
+  --dedupe none \
+  --dry-run
+```
+
+Issueに投稿する場合の例です。
+
+```bash
+scripts/zenn-search.sh \
+  --repo mat-dev-io/zenn-search \
+  --issue 2 \
+  --pages 1 \
+  --max-items 3 \
+  --dedupe issue
+```
+
+## GitHub Actionsで使う
+
+このリポジトリには、すでに実行用Workflowの `.github/workflows/zenn-search.yml` が含まれています。
+
+使い方:
+
+1. GitHub に push する
+2. Actions タブで `Zenn Search` を開く
+3. `Run workflow` から手動実行する
+
+Workflowのデフォルト:
+
+- `issue`: `2`
+- `pages`: `5`
+- `max_items`: `10`
+- `dedupe`: `issue`
+
+定期実行も有効になっており、UTC 21:00 に起動します。
+
+## 他のリポジトリからActionとして使う
+
+このリポジトリを公開した後は、別リポジトリから `uses:` で呼び出すこともできます。
 
 ```yaml
-name: Zenn Search
-
-on:
-  workflow_dispatch:
-    inputs:
-      issue:
-        description: "Issue number"
-        required: true
-        default: "1"
-      pages:
-        description: "Pages to scan"
-        required: false
-        default: "5"
-      max_items:
-        description: "Items to output"
-        required: false
-        default: "10"
-      dry_run:
-        description: "Do not post, print only"
-        required: false
-        type: boolean
-        default: false
-
-permissions:
-  contents: read
-  issues: write
-
 jobs:
   run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./
+      - uses: mat-dev-io/zenn-search@v0
         with:
           repo: ${{ github.repository }}
-          issue: ${{ github.event.inputs.issue }}
-          pages: ${{ github.event.inputs.pages }}
-          max_items: ${{ github.event.inputs.max_items }}
-          include: "GitHub Copilot, GitHub Actions, Agent Skills, AI, Claude, automation"
+          issue: "2"
+          pages: "5"
+          max_items: "10"
           dedupe: "issue"
-          dry_run: ${{ github.event.inputs.dry_run }}
+          dry_run: "false"
 ```
 
 ## 注意点
 
-- 一時的なランナーでは `dedupe: issue` を使ってください（GitHub Actionsに最適）。
+- GitHub Actions のような揮発環境では `dedupe: issue` を使ってください。
 - ローカルで繰り返し実行する場合は `dedupe: local` を使ってください。
-- 権限は最小限にしてください。コメント投稿時のみ `issues: write` が必要です。
+- コメント投稿時のみ `issues: write` 権限が必要です。
+- Zenn側のHTML/JSON構造が変わると取得処理が壊れる可能性があります。
 
 ## ライセンス
 
-好みのライセンスを選択してください（この種のユーティリティではMITが一般的です）。
+好みのライセンスを選択してください。一般的にはMITで十分です。
