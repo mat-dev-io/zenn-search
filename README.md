@@ -1,29 +1,29 @@
 # zenn-search
 
-GitHub Action + CLI wrapper to collect recent articles from Zenn, rank/filter them, and optionally post results to a GitHub Issue.
+Zennの最新記事を収集してランキング・フィルタリングし、必要に応じてGitHub Issueへ結果を投稿するためのGitHub Action + CLIラッパーです。
 
-## What this template includes
+## このテンプレートに含まれるもの
 
-- `action.yml`: Composite Action wrapper for `scripts/zenn-search.sh`
-- `.github/workflows/ci.yml`: CI for shell quality and smoke checks
-- This README with copy-paste setup
+- `action.yml`: `scripts/zenn-search.sh` を呼び出す Composite Action ラッパー
+- `.github/workflows/ci.yml`: シェル品質チェックとスモークチェックのためのCI
+- このREADME（そのままコピーして使えるセットアップ手順付き）
 
-## Requirements
+## 要件
 
-- `scripts/zenn-search.sh` exists in this repository
-- Script supports these options:
+- このリポジトリに `scripts/zenn-search.sh` が存在すること
+- スクリプトが次のオプションをサポートしていること:
   - `--url --pages --max-items --include --exclude --dedupe`
   - `--repo --issue --dry-run`
   - `--output --state-path --seen-output`
-  - optional: `--profile`
-- Runtime tools in GitHub runner:
+  - 任意: `--profile`
+- GitHub runner 上で利用できる実行ツール:
   - `bash`
   - `python3`
-  - `gh` (already available on `ubuntu-latest`)
+  - `gh`（`ubuntu-latest` では標準で利用可能）
 
-## Quick setup
+## クイックセットアップ
 
-1. Copy files from this template:
+1. このテンプレートからファイルをコピーします:
 
 ```bash
 cp action.yml <your-new-repo>/action.yml
@@ -32,17 +32,17 @@ cp .github/workflows/ci.yml <your-new-repo>/.github/workflows/ci.yml
 cp README.md <your-new-repo>/README.md
 ```
 
-2. Place your script at:
+2. スクリプトを次の場所に配置します:
 
 ```text
 scripts/zenn-search.sh
 ```
 
-3. Commit and push.
+3. コミットしてプッシュします。
 
-## Example workflow using this action
+## このActionを使うワークフロー例
 
-Create `.github/workflows/zenn-search.yml` in your new repository:
+新しいリポジトリに `.github/workflows/zenn-search.yml` を作成します:
 
 ```yaml
 name: Zenn Search
@@ -88,12 +88,12 @@ jobs:
           dry_run: ${{ github.event.inputs.dry_run }}
 ```
 
-## Notes
+## 注意点
 
-- Use `dedupe: issue` for ephemeral runners (best for GitHub Actions).
-- Use `dedupe: local` for local repeated runs.
-- Keep permissions minimal: `issues: write` only when posting comments.
+- 一時的なランナーでは `dedupe: issue` を使ってください（GitHub Actionsに最適）。
+- ローカルで繰り返し実行する場合は `dedupe: local` を使ってください。
+- 権限は最小限にしてください。コメント投稿時のみ `issues: write` が必要です。
 
-## License
+## ライセンス
 
-Choose your preferred license (MIT is common for this type of utility).
+好みのライセンスを選択してください（この種のユーティリティではMITが一般的です）。
