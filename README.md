@@ -171,6 +171,7 @@ jobs:
 
 ## 注意点
 
+- このActionは実行元リポジトリのGitHub Actions環境と権限で動作し、公開元リポジトリのIssueやローカル環境を直接操作しません。
 - GitHub Actions のような揮発環境では `dedupe: issue` を使ってください。
 - ローカルで繰り返し実行する場合は `dedupe: local` を使ってください。
 - コメント投稿時のみ `issues: write` 権限が必要です。
